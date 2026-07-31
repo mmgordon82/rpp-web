@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1418" />
+    <meta name="theme-color" content="#ffffff" />
     <title>REON Pocket Control</title>
     <link rel="stylesheet" href="./style.css" />
     <script type="module" src="./src/main.js"></script>
@@ -12,11 +12,8 @@
     <main>
       <header class="topbar">
         <div class="brand">
-          <span class="brand-mark">R</span>
-          <div>
-            <h1>REON Pocket</h1>
-            <p id="device">REON Pocket Pro Plus</p>
-          </div>
+          <h1>REON Pocket</h1>
+          <p id="device">REON Pocket Pro Plus</p>
         </div>
         <button id="connect" class="connect">Connect</button>
       </header>
@@ -32,7 +29,7 @@
             <div>
               <p class="label">Plate</p>
               <p class="readout">
-                <strong id="temperature">—</strong><span class="unit">C</span>
+                <strong id="temperature">--.-</strong><span class="unit">°C</span>
               </p>
             </div>
             <div class="mode-block" aria-live="polite">
@@ -226,10 +223,7 @@
 
       <section class="automations" aria-labelledby="automations-title">
         <div class="section-heading">
-          <div>
-            <p class="eyebrow">Wear it and forget it</p>
-            <h2 id="automations-title">Automations</h2>
-          </div>
+          <h2 id="automations-title">Automations</h2>
         </div>
         <label id="auto-start-control" class="setting" hidden>
           <span>
@@ -254,7 +248,7 @@
         </div>
       </section>
 
-      <details>
+      <details class="diagnostics">
         <summary>Device diagnostics</summary>
         <pre id="log"></pre>
       </details>

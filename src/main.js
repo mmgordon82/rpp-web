@@ -40,6 +40,7 @@ const coolThreshold = document.querySelector("#cool-threshold");
 const warmThreshold = document.querySelector("#warm-threshold");
 const coolThresholdOutput = document.querySelector("#cool-threshold-output");
 const warmThresholdOutput = document.querySelector("#warm-threshold-output");
+const automations = document.querySelector(".automations");
 const tabList = document.querySelector(".tabs");
 const gauge = document.querySelector(".gauge");
 const tabs = [...document.querySelectorAll("[data-control-tab]")];
@@ -150,13 +151,14 @@ function render(state) {
   }
 
   temperatureLabel.textContent = temperature
-    ? `${temperature.surface.toFixed(1)}°`
-    : "—";
+    ? temperature.surface.toFixed(1)
+    : "--.-";
   contactLabel.textContent = connected
     ? "Live surface temperature"
     : "Waiting for device";
   renderGauge(temperature, mode);
 
+  automations.hidden = !capabilities;
   smartTab.hidden = capabilities ? !capabilities.smart : true;
   waveControl.hidden = capabilities ? !capabilities.wave : true;
   autoStartControl.hidden = capabilities ? !capabilities.autoStart : true;
