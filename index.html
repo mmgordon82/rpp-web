@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1418" />
+    <title>REON Pocket Control</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./src/main.js"></script>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">R</span>
+          <div>
+            <h1>REON Pocket</h1>
+            <p id="device">REON Pocket Pro Plus</p>
+          </div>
+        </div>
+        <button id="connect" class="connect">Connect</button>
+      </header>
+
+      <section class="device-card">
+        <div class="device-status" aria-live="polite">
+          <span id="connection-dot"></span>
+          <span id="connection">Not connected</span>
+        </div>
+
+        <div class="gauge">
+          <div class="gauge-head">
+            <div>
+              <p class="label">Plate</p>
+              <p class="readout">
+                <strong id="temperature">—</strong><span class="unit">C</span>
+              </p>
+            </div>
+            <div class="mode-block" aria-live="polite">
+              <p class="label">Current mode</p>
+              <strong id="mode-summary">Stopped</strong>
+              <span id="contact">Not worn</span>
+            </div>
+          </div>
+
+          <div class="strip" aria-hidden="true">
+            <span class="strip-skin"></span>
+            <span class="strip-marker"></span>
+          </div>
+          <div class="strip-scale" aria-hidden="true">
+            <span class="scale-min">12°</span>
+            <span class="scale-skin">skin 33°</span>
+            <span class="scale-max">42°</span>
+          </div>
+        </div>
+
+        <div class="battery">
+          <div class="battery-copy">
+            <span>Battery</span>
+            <strong id="battery">—</strong>
+          </div>
+          <div class="battery-track"><span id="battery-fill"></span></div>
+        </div>
+      </section>
+
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section class="controller" aria-label="Temperature controls">
+        <div class="tabs" role="tablist" aria-label="Control type">
+          <button
+            id="manual-tab"
+            class="tab active"
+            data-control-tab="manual"
+            role="tab"
+            aria-selected="true"
+            aria-controls="manual-controls"
+          >
+            Manual
+          </button>
+          <button
+            id="smart-tab"
+            class="tab"
+            data-control-tab="smart"
+            role="tab"
+            aria-selected="false"
+            aria-controls="smart-controls"
+            hidden
+          >
+            Smart
+          </button>
+        </div>
+
+        <div
+          id="manual-controls"
+          class="control-panel"
+          role="tabpanel"
+          aria-labelledby="manual-tab"
+          tabindex="0"
+        >
+          <div class="control-group cool">
+            <div>
+              <p class="label">Cool</p>
+              <span>Higher is colder</span>
+            </div>
+            <div class="levels" data-kind="cool">
+              <button data-manual data-kind="cool" data-level="1" aria-label="Cool level 1" disabled>1</button>
+              <button data-manual data-kind="cool" data-level="2" aria-label="Cool level 2" disabled>2</button>
+              <button data-manual data-kind="cool" data-level="3" aria-label="Cool level 3" disabled>3</button>
+              <button data-manual data-kind="cool" data-level="4" aria-label="Cool level 4" disabled>4</button>
+              <button data-manual data-kind="cool" data-level="5" aria-label="Cool level 5" disabled>5</button>
+            </div>
+          </div>
+
+          <div class="control-group warm">
+            <div>
+              <p class="label">Warm</p>
+              <span>Higher is warmer</span>
+            </div>
+            <div class="levels" data-kind="warm">
+              <button data-manual data-kind="warm" data-level="1" aria-label="Warm level 1" disabled>1</button>
+              <button data-manual data-kind="warm" data-level="2" aria-label="Warm level 2" disabled>2</button>
+              <button data-manual data-kind="warm" data-level="3" aria-label="Warm level 3" disabled>3</button>
+              <button data-manual data-kind="warm" data-level="4" aria-label="Warm level 4" disabled>4</button>
+            </div>
+          </div>
+
+          <label id="wave-control" class="setting" hidden>
+            <span>
+              <strong>Wave</strong>
+              <small>Varies the intensity so you keep feeling it</small>
+            </span>
+            <input id="wave" type="checkbox" role="switch" disabled />
+          </label>
+        </div>
+
+        <div
+          id="smart-controls"
+          class="control-panel"
+          role="tabpanel"
+          aria-labelledby="smart-tab"
+          tabindex="0"
+          hidden
+        >
+          <div class="smart-group cool">
+            <div>
+              <p class="label">Smart Cool</p>
+              <span>Keeps your skin at a steady cool</span>
+            </div>
+            <div class="preference-labels"><span>Gentler</span><span>Stronger</span></div>
+            <div class="levels">
+              <button data-smart data-kind="cool" data-preference="1" aria-label="Smart Cool preference 1" disabled>1</button>
+              <button data-smart data-kind="cool" data-preference="2" aria-label="Smart Cool preference 2" disabled>2</button>
+              <button data-smart data-kind="cool" data-preference="3" aria-label="Smart Cool preference 3" disabled>3</button>
+              <button data-smart data-kind="cool" data-preference="4" aria-label="Smart Cool preference 4" disabled>4</button>
+              <button data-smart data-kind="cool" data-preference="5" aria-label="Smart Cool preference 5" disabled>5</button>
+            </div>
+          </div>
+
+          <div class="smart-group warm">
+            <div>
+              <p class="label">Smart Warm</p>
+              <span>Keeps your skin at a steady warmth</span>
+            </div>
+            <div class="preference-labels"><span>Gentler</span><span>Stronger</span></div>
+            <div class="levels">
+              <button data-smart data-kind="warm" data-preference="1" aria-label="Smart Warm preference 1" disabled>1</button>
+              <button data-smart data-kind="warm" data-preference="2" aria-label="Smart Warm preference 2" disabled>2</button>
+              <button data-smart data-kind="warm" data-preference="3" aria-label="Smart Warm preference 3" disabled>3</button>
+              <button data-smart data-kind="warm" data-preference="4" aria-label="Smart Warm preference 4" disabled>4</button>
+              <button data-smart data-kind="warm" data-preference="5" aria-label="Smart Warm preference 5" disabled>5</button>
+            </div>
+          </div>
+
+          <div id="smart-auto" class="smart-auto" hidden>
+            <div class="smart-auto-head">
+              <div>
+                <p class="label">Smart Cool ⇄ Warm</p>
+                <span>Switches automatically with your Tag</span>
+              </div>
+              <strong id="tag-status">Tag connected</strong>
+            </div>
+
+            <div class="smart-auto-preference cool">
+              <span>Cool preference</span>
+              <div class="levels">
+                <button data-smart-auto data-kind="cool" data-preference="1" aria-label="Auto Cool preference 1" disabled>1</button>
+                <button data-smart-auto data-kind="cool" data-preference="2" aria-label="Auto Cool preference 2" disabled>2</button>
+                <button data-smart-auto data-kind="cool" data-preference="3" aria-label="Auto Cool preference 3" disabled>3</button>
+                <button data-smart-auto data-kind="cool" data-preference="4" aria-label="Auto Cool preference 4" disabled>4</button>
+                <button data-smart-auto data-kind="cool" data-preference="5" aria-label="Auto Cool preference 5" disabled>5</button>
+              </div>
+            </div>
+
+            <div class="smart-auto-preference warm">
+              <span>Warm preference</span>
+              <div class="levels">
+                <button data-smart-auto data-kind="warm" data-preference="1" aria-label="Auto Warm preference 1" disabled>1</button>
+                <button data-smart-auto data-kind="warm" data-preference="2" aria-label="Auto Warm preference 2" disabled>2</button>
+                <button data-smart-auto data-kind="warm" data-preference="3" aria-label="Auto Warm preference 3" disabled>3</button>
+                <button data-smart-auto data-kind="warm" data-preference="4" aria-label="Auto Warm preference 4" disabled>4</button>
+                <button data-smart-auto data-kind="warm" data-preference="5" aria-label="Auto Warm preference 5" disabled>5</button>
+              </div>
+            </div>
+
+            <details class="switching">
+              <summary>Switching temperatures</summary>
+              <label>
+                <span>Switch to Cool</span>
+                <output id="cool-threshold-output" for="cool-threshold">25°C</output>
+                <input id="cool-threshold" type="range" min="20" max="30" step="0.5" value="25" disabled />
+              </label>
+              <label>
+                <span>Switch to Warm</span>
+                <output id="warm-threshold-output" for="warm-threshold">20°C</output>
+                <input id="warm-threshold" type="range" min="10" max="25" step="0.5" value="20" disabled />
+              </label>
+            </details>
+
+            <button id="smart-auto-start" class="smart-auto-start" disabled>
+              Start automatic control
+            </button>
+          </div>
+        </div>
+
+        <button id="stop" class="stop" disabled>Stop</button>
+      </section>
+
+      <section class="automations" aria-labelledby="automations-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Wear it and forget it</p>
+            <h2 id="automations-title">Automations</h2>
+          </div>
+        </div>
+        <label id="auto-start-control" class="setting" hidden>
+          <span>
+            <strong>Auto Start / Stop</strong>
+            <small>Run when worn, stop when removed</small>
+          </span>
+          <input id="auto-start" type="checkbox" role="switch" disabled />
+        </label>
+        <label id="quick-launch-control" class="setting" hidden>
+          <span>
+            <strong>Quick Launch</strong>
+            <small>Resume your last mode from the device button</small>
+          </span>
+          <input id="quick-launch" type="checkbox" role="switch" disabled />
+        </label>
+        <div id="tag-control" class="setting" hidden>
+          <span>
+            <strong>REON Pocket Tag</strong>
+            <small id="tag-link-status">Required for automatic Cool ⇄ Warm</small>
+          </span>
+          <button id="tag-link" class="setting-action" disabled>Link Tag</button>
+        </div>
+      </section>
+
+      <details>
+        <summary>Device diagnostics</summary>
+        <pre id="log"></pre>
+      </details>
+    </main>
+  </body>
+</html>

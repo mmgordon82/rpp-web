@@ -1,0 +1,10 @@
+{
+  "name": "rpp-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build index.html --outdir dist",
+    "dev": "bun index.html",
+    "test": "bun test"
+  }
+}
