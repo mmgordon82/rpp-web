@@ -95,9 +95,14 @@ stop frame and leave both Smart target temperatures unset (`0x8000`). The Pro
 uses `0xff` for Manual stop and sets the target temperature for the selected
 Smart mode. Unknown models retain the Pro behavior.
 
-**Ownership.** On every connect the app writes a 16-byte owner key to `150a`.
-The key is generated once and kept in `localStorage`. Clearing site data
-generates a new one and re-claims the device on the next connect.
+**Ownership.** The site keeps a 16-byte owner key in `localStorage`. Before
+claiming a device, it reads the owner record from `1506` when possible: an
+unregistered device can be claimed, a matching owner ID can be reused, and a
+different owner ID produces reset instructions without an owner write. If that
+record cannot be read, the site falls back to writing the key to `150a` and
+handles rejection. Registration is remembered per browser device ID in
+`localStorage`; Web Bluetooth does not expose the hardware MAC address.
+Clearing site data generates a new key and clears the saved registrations.
 
 **Tag.** The Tag broadcasts under Sony's company ID `0x012D` with its payload
 XOR-obfuscated by a fixed key. Linking writes the Tag's address to `1506`;

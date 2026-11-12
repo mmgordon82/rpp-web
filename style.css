@@ -150,6 +150,7 @@ h1 {
 
 .device-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 9px;
   padding: 12px 16px;

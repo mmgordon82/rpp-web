@@ -6,6 +6,7 @@ import {
   parseBattery,
   parseCapabilities,
   parseMode,
+  parseOwnerRegistration,
   parseTagAdvertisement,
   parseTemperature,
   SONY_COMPANY_ID,
@@ -13,6 +14,7 @@ import {
   tagUnregistrationFrame,
   toHex,
 } from "./protocol.js";
+import { getRegistration, saveRegistration } from "./registration.js";
 
 const OWNER_KEY_STORAGE = "reon-owner-key";
 const TAG_ADDRESS_STORAGE = "reon-tag-address";
@@ -31,6 +33,16 @@ function ownerKey() {
   }
   localStorage.setItem(OWNER_KEY_STORAGE, toHex(key).replaceAll(" ", ""));
   return key;
+}
+
+function ownerResetError(device, otherOwner) {
+  const reset = device.model?.startsWith("RNP-P")
+    ? "hold the SMART button for 5 seconds to reset its registration"
+    : "hold the device button for about 15 seconds until the blue LED flashes to reset its registration";
+  const problem = otherOwner
+    ? "This device is registered to another app or browser."
+    : "The device rejected this browser's owner key. It may still be registered to Sony's app.";
+  return `${problem} To use this web interface instead of Sony's app, ${reset}. Then hold the device button for 2 seconds and select Connect again.`;
 }
 
 async function readText(service, characteristicId) {
@@ -77,6 +89,7 @@ export class ReonClient {
     connected: false,
     connecting: false,
     device: null,
+    ownership: null,
     capabilities: null,
     mode: null,
     battery: null,
@@ -124,15 +137,35 @@ export class ReonClient {
 
       const server = await this.#device.gatt.connect();
       const control = await server.getPrimaryService(SERVICE.control);
-      const owner = await control.getCharacteristic(CHARACTERISTIC.owner);
-      const ownerFrame = Uint8Array.of(1, ...ownerKey());
-      this.#log("write", "owner", ownerFrame);
-      await owner.writeValueWithResponse(ownerFrame);
+      const device = {
+        id: this.#device.id,
+        ...(await this.#readDeviceInfo(server)),
+      };
+      const saved = getRegistration(localStorage, device.id);
+      this.#update({
+        device,
+        ownership: saved ? (saved.registered ? "mine" : "other") : null,
+      });
 
-      const [deviceInfo, capabilityValue] = await Promise.all([
-        this.#readDeviceInfo(server),
-        this.#readCharacteristic(control, "capability"),
-      ]);
+      const ownership = await this.#claimOwner(control);
+      if (ownership === "mine" || ownership === "other") {
+        saveRegistration(localStorage, device, ownership === "mine");
+      }
+      if (ownership !== "mine") {
+        this.#update({
+          connected: false,
+          connecting: false,
+          ownership,
+          error: ownerResetError(device, ownership === "other"),
+        });
+        this.#device.gatt.disconnect();
+        return;
+      }
+
+      const capabilityValue = await this.#readCharacteristic(
+        control,
+        "capability",
+      );
       const capabilities = parseCapabilities(capabilityValue);
 
       const characteristicNames = ["mode", "battery", "temperature"];
@@ -158,7 +191,8 @@ export class ReonClient {
       this.#update({
         connected: true,
         connecting: false,
-        device: deviceInfo,
+        device,
+        ownership: "mine",
         capabilities,
       });
     } catch (error) {
@@ -172,6 +206,37 @@ export class ReonClient {
       });
       this.#log("error", error.name, new TextEncoder().encode(error.message));
     }
+  }
+
+  async #claimOwner(control) {
+    const key = ownerKey();
+    let current = null;
+    try {
+      const authentication = await control.getCharacteristic(
+        CHARACTERISTIC.authentication,
+      );
+      const value = await authentication.readValue();
+      this.#log("read", "authentication", value);
+      current = parseOwnerRegistration(value, key);
+    } catch (error) {
+      this.#log(
+        "error",
+        "owner-check",
+        new TextEncoder().encode(error.message),
+      );
+    }
+
+    if (current === "other") return current;
+    const owner = await control.getCharacteristic(CHARACTERISTIC.owner);
+    const ownerFrame = Uint8Array.of(1, ...key);
+    this.#log("write", "owner", ownerFrame);
+    try {
+      await owner.writeValueWithResponse(ownerFrame);
+    } catch (error) {
+      this.#log("error", error.name, new TextEncoder().encode(error.message));
+      return "unknown";
+    }
+    return "mine";
   }
 
   disconnect() {

@@ -12,6 +12,7 @@ import { ReonClient } from "./reon-client.js";
 const client = new ReonClient();
 const connectButton = document.querySelector("#connect");
 const connectionLabel = document.querySelector("#connection");
+const ownershipLabel = document.querySelector("#ownership");
 const connectionDot = document.querySelector("#connection-dot");
 const deviceLabel = document.querySelector("#device");
 const batteryLabel = document.querySelector("#battery");
@@ -135,6 +136,13 @@ function render(state) {
   deviceLabel.textContent = device
     ? `${device.model} · Firmware ${device.firmware}`
     : "REON Pocket Pro Plus";
+  ownershipLabel.textContent =
+    state.ownership === "mine"
+      ? "Registered to this browser"
+      : state.ownership === "other"
+        ? "Reset ownership required"
+        : "";
+  ownershipLabel.hidden = !ownershipLabel.textContent;
   errorLabel.textContent = state.error ?? "";
   errorLabel.hidden = !state.error;
 

@@ -352,3 +352,22 @@ export function parseTemperature(value) {
 export function parseAutomation(value) {
   return bytesOf(value)[0] === 1;
 }
+
+export function parseOwnerRegistration(value, ownerKey) {
+  const bytes = bytesOf(value);
+  const key = bytesOf(ownerKey);
+  if (
+    bytes.length < 18 ||
+    (bytes[0] !== 1 && bytes[0] !== 129) ||
+    (bytes[1] !== 0 && bytes[1] !== 1) ||
+    key.length !== 16
+  ) {
+    return null;
+  }
+  if (bytes[1] === 0) return "unregistered";
+  return bytes
+    .slice(2, 18)
+    .every((byte, index) => byte === key[index])
+    ? "mine"
+    : "other";
+}
