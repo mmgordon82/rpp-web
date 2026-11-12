@@ -181,19 +181,19 @@ export function automationFrame(enabled) {
   return enabled ? Uint8Array.of(1, 128) : Uint8Array.of(0);
 }
 
-export function tagRegistrationFrame(address) {
+export function tagRegistrationFrame(address, deviceType = 1) {
   const addressBytes = address
     .split(":")
     .map((byte) => Number.parseInt(byte, 16))
     .reverse();
-  return Uint8Array.of(2, 1, ...addressBytes, 1);
+  return Uint8Array.of(2, 1, ...addressBytes, deviceType);
 }
 
-export function tagUnregistrationFrame() {
-  return Uint8Array.of(2, 2, 0, 0, 0, 0, 0, 0, 1);
+export function tagUnregistrationFrame(deviceType = 1) {
+  return Uint8Array.of(2, 2, 0, 0, 0, 0, 0, 0, deviceType);
 }
 
-export function parseTagAdvertisement(value) {
+export function parseTagAdvertisement(value, model) {
   const encrypted = bytesOf(value);
   const bytes = Uint8Array.from(
     encrypted,
@@ -210,11 +210,13 @@ export function parseTagAdvertisement(value) {
   if (address === "00:00:00:00:00:00") {
     return null;
   }
+  const deviceType = { "RNPT-1": 1, "RNPT-2": 2 }[model];
   return {
     address,
     firmware: bytes[0],
     format: bytes[1],
     battery: bytes[1] === 5 ? bytes[12] : bytes[11],
+    ...(deviceType ? { model, deviceType } : {}),
   };
 }
 
@@ -322,8 +324,11 @@ export function parseTemperature(value) {
   if (bytes[0] === 2) {
     const temperature = view.getInt16(4, false) / 100;
     const humidity = view.getInt16(6, false) / 100;
+    const illumination = view.getUint16(8, false);
+    const proximity = view.getUint16(10, false);
     if (
       bytes[1] === 0 ||
+      bytes[3] !== 1 ||
       temperature <= -327.68 ||
       humidity <= -327.68 ||
       bytes[13] > 100
@@ -333,8 +338,11 @@ export function parseTemperature(value) {
     return {
       source: "tag",
       firmware: bytes[1],
+      format: bytes[2],
       temperature,
       humidity,
+      illumination: illumination === 65535 ? null : illumination,
+      proximity: proximity === 65535 ? null : proximity,
       battery: bytes[13],
     };
   }

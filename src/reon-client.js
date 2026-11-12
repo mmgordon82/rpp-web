@@ -18,6 +18,7 @@ import { getRegistration, saveRegistration } from "./registration.js";
 
 const OWNER_KEY_STORAGE = "reon-owner-key";
 const TAG_ADDRESS_STORAGE = "reon-tag-address";
+const TAG_INFO_STORAGE = "reon-tag-info";
 
 function ownerKey() {
   const stored = localStorage.getItem(OWNER_KEY_STORAGE);
@@ -68,7 +69,7 @@ function receiveTagAdvertisement(device) {
       "advertisementreceived",
       (event) => {
         const value = event.manufacturerData.get(SONY_COMPANY_ID);
-        const tag = value ? parseTagAdvertisement(value) : null;
+        const tag = value ? parseTagAdvertisement(value, device.name) : null;
         if (tag) finish(tag);
       },
       { signal: controller.signal },
@@ -269,24 +270,35 @@ export class ReonClient {
     this.#update({ pairingTag: true, error: null });
     try {
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [SERVICE.tag] }],
+        filters: [{ namePrefix: "RNPT-", services: [SERVICE.tag] }],
         optionalManufacturerData: [SONY_COMPANY_ID],
       });
       const tag = await receiveTagAdvertisement(device);
+      if (!tag.deviceType) throw new Error("Unsupported Tag model");
       const written = await this.#write(
         "authentication",
-        tagRegistrationFrame(tag.address),
+        tagRegistrationFrame(tag.address, tag.deviceType),
         false,
       );
       if (!written) return;
       localStorage.setItem(TAG_ADDRESS_STORAGE, tag.address);
+      localStorage.setItem(
+        TAG_INFO_STORAGE,
+        JSON.stringify({
+          address: tag.address,
+          model: tag.model,
+          deviceType: tag.deviceType,
+        }),
+      );
       this.#update({ tagLinked: true });
     } catch (error) {
       this.#update({
         error:
           error.name === "NotFoundError"
             ? "No Tag selected."
-            : "Could not read the Tag. Press its button, keep it nearby, and try again.",
+            : error.message === "Unsupported Tag model"
+              ? "This Tag model is not supported."
+              : "Could not read the Tag. Press its button, keep it nearby, and try again.",
       });
       this.#log("error", error.name, new TextEncoder().encode(error.message));
     } finally {
@@ -295,13 +307,19 @@ export class ReonClient {
   }
 
   async unlinkTag() {
+    let deviceType = 1;
+    try {
+      const tag = JSON.parse(localStorage.getItem(TAG_INFO_STORAGE) ?? "null");
+      deviceType = tag?.deviceType === 2 ? 2 : 1;
+    } catch {}
     const written = await this.#write(
       "authentication",
-      tagUnregistrationFrame(),
+      tagUnregistrationFrame(deviceType),
       false,
     );
     if (!written) return;
     localStorage.removeItem(TAG_ADDRESS_STORAGE);
+    localStorage.removeItem(TAG_INFO_STORAGE);
     this.#update({ tag: null, tagLinked: false });
   }
 

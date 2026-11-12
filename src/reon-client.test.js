@@ -1,10 +1,21 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { CHARACTERISTIC, DEVICE_INFO, SERVICE } from "./protocol.js";
+import {
+  CHARACTERISTIC,
+  DEVICE_INFO,
+  SERVICE,
+  SONY_COMPANY_ID,
+} from "./protocol.js";
 import { getRegistration } from "./registration.js";
 import { ReonClient } from "./reon-client.js";
 
 const ownerKey = Uint8Array.from({ length: 16 }, (_, index) => index + 1);
-const globals = ["navigator", "document", "localStorage", "CustomEvent"];
+const globals = [
+  "navigator",
+  "document",
+  "localStorage",
+  "CustomEvent",
+  "window",
+];
 const descriptors = new Map(
   globals.map((name) => [
     name,
@@ -28,6 +39,7 @@ function memoryStorage() {
   return {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
   };
 }
 
@@ -65,13 +77,18 @@ function connection({
         throw new Error(`Unexpected read: ${id}`);
       },
       writeValueWithResponse: async (frame) => {
-        if (id !== CHARACTERISTIC.owner) {
+        if (
+          id !== CHARACTERISTIC.owner &&
+          id !== CHARACTERISTIC.authentication
+        ) {
           throw new Error(`Unexpected write: ${id}`);
         }
         writes.push([
           ...new Uint8Array(frame.buffer, frame.byteOffset, frame.byteLength),
         ]);
-        if (ownerWriteFails) throw new Error("Owner rejected");
+        if (id === CHARACTERISTIC.owner && ownerWriteFails) {
+          throw new Error("Owner rejected");
+        }
       },
     }),
   };
@@ -109,6 +126,10 @@ function connection({
   });
   stubGlobal("document", { dispatchEvent: () => {} });
   stubGlobal("localStorage", storage);
+  stubGlobal("window", {
+    setTimeout: setTimeout.bind(globalThis),
+    clearTimeout: clearTimeout.bind(globalThis),
+  });
   stubGlobal(
     "CustomEvent",
     class {
@@ -184,5 +205,79 @@ describe("owner connection flow", () => {
     expect(client.state.ownership).toBe("unknown");
     expect(client.state.error).toContain("may still be registered");
     expect(getRegistration(connectionState.storage, "browser-device-id")).toBeNull();
+  });
+});
+
+function selectTag2() {
+  const key = [
+    0xd2, 0x23, 0xec, 0x09, 0x13, 0x84, 0xf9, 0x96, 0x31, 0x45, 0xfc,
+    0xf2, 0xcf, 0xfa, 0x34, 0x41,
+  ];
+  const advertisement = new Uint8Array(22);
+  advertisement[0] = 2;
+  advertisement[1] = 7;
+  advertisement[11] = 76;
+  advertisement.set([0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa], 16);
+  const encrypted = advertisement.map(
+    (byte, index) => byte ^ key[index % key.length],
+  );
+  const device = {
+    name: "RNPT-2",
+    addEventListener: (type, listener) => {
+      queueMicrotask(() =>
+        listener({
+          manufacturerData: new Map([
+            [SONY_COMPANY_ID, dataView(encrypted)],
+          ]),
+        }),
+      );
+    },
+    watchAdvertisements: async () => {},
+  };
+  navigator.bluetooth.requestDevice = async () => device;
+}
+
+describe("Tag registration", () => {
+  test("registers a discovered Tag 2 and persists its model", async () => {
+    const connectionState = connection();
+    const client = new ReonClient();
+    await client.connect();
+    selectTag2();
+
+    await client.linkTag();
+
+    expect(connectionState.writes[1]).toEqual([
+      2, 1, 255, 238, 221, 204, 187, 170, 2,
+    ]);
+    expect(connectionState.storage.getItem("reon-tag-address")).toBe(
+      "AA:BB:CC:DD:EE:FF",
+    );
+    expect(
+      JSON.parse(connectionState.storage.getItem("reon-tag-info")),
+    ).toEqual({
+      address: "AA:BB:CC:DD:EE:FF",
+      model: "RNPT-2",
+      deviceType: 2,
+    });
+    expect(client.state.tagLinked).toBe(true);
+    expect(client.state.pairingTag).toBe(false);
+
+    await client.unlinkTag();
+
+    expect(connectionState.writes[2]).toEqual([
+      2, 2, 0, 0, 0, 0, 0, 0, 2,
+    ]);
+    expect(connectionState.storage.getItem("reon-tag-address")).toBeNull();
+    expect(connectionState.storage.getItem("reon-tag-info")).toBeNull();
+    expect(client.state.tagLinked).toBe(false);
+  });
+
+  test("keeps existing address-only Tag registrations compatible", () => {
+    const connectionState = connection();
+    connectionState.storage.setItem("reon-tag-address", "AA:BB:CC:DD:EE:FF");
+
+    const client = new ReonClient();
+
+    expect(client.state.tagLinked).toBe(true);
   });
 });

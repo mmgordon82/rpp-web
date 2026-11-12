@@ -98,13 +98,21 @@ describe("REON protocol", () => {
       element: 28,
       exhaust: 31,
     });
-    expect(parseTemperature(Uint8Array.of(2, 5, 1, 1, 11, 184, 21, 124, 0, 0, 0, 0, 0, 88))).toEqual({
+    expect(parseTemperature(Uint8Array.of(2, 5, 7, 1, 11, 184, 21, 124, 4, 176, 1, 84, 0, 88))).toEqual({
       source: "tag",
       firmware: 5,
+      format: 7,
       temperature: 30,
       humidity: 55,
+      illumination: 1200,
+      proximity: 340,
       battery: 88,
     });
+    expect(
+      parseTemperature(
+        Uint8Array.of(2, 5, 7, 1, 11, 184, 21, 124, 255, 255, 255, 255, 0, 88),
+      ),
+    ).toMatchObject({ illumination: null, proximity: null });
     expect(
       parseTemperature(
         Uint8Array.of(2, 0, 0, 255, 128, 0, 128, 0, 255, 255, 255, 255, 12, 255),
@@ -127,7 +135,7 @@ describe("REON protocol", () => {
     expect([...automationFrame(false)]).toEqual([0]);
   });
 
-  test("discovers and registers a REON Pocket Tag", () => {
+  test("discovers and registers REON Pocket Tag models", () => {
     const key = [
       0xd2, 0x23, 0xec, 0x09, 0x13, 0x84, 0xf9, 0x96, 0x31, 0x45, 0xfc,
       0xf2, 0xcf, 0xfa, 0x34, 0x41,
@@ -147,11 +155,38 @@ describe("REON protocol", () => {
       format: 5,
       battery: 91,
     });
+    expect(parseTagAdvertisement(encrypted, "RNPT-1")).toMatchObject({
+      model: "RNPT-1",
+      deviceType: 1,
+    });
     expect([...tagRegistrationFrame("AA:BB:CC:DD:EE:FF")]).toEqual([
       2, 1, 255, 238, 221, 204, 187, 170, 1,
     ]);
+
+    const tag2Advertisement = new Uint8Array(22);
+    tag2Advertisement[0] = 2;
+    tag2Advertisement[1] = 7;
+    tag2Advertisement[11] = 76;
+    tag2Advertisement.set([0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa], 16);
+    const encryptedTag2 = tag2Advertisement.map(
+      (byte, index) => byte ^ key[index % key.length],
+    );
+    expect(parseTagAdvertisement(encryptedTag2, "RNPT-2")).toEqual({
+      address: "AA:BB:CC:DD:EE:FF",
+      firmware: 2,
+      format: 7,
+      battery: 76,
+      model: "RNPT-2",
+      deviceType: 2,
+    });
+    expect([...tagRegistrationFrame("AA:BB:CC:DD:EE:FF", 2)]).toEqual([
+      2, 1, 255, 238, 221, 204, 187, 170, 2,
+    ]);
     expect([...tagUnregistrationFrame()]).toEqual([
       2, 2, 0, 0, 0, 0, 0, 0, 1,
+    ]);
+    expect([...tagUnregistrationFrame(2)]).toEqual([
+      2, 2, 0, 0, 0, 0, 0, 0, 2,
     ]);
   });
 });
