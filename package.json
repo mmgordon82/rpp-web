@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "bun build index.html --outdir dist",
-    "dev": "bun index.html",
+    "dev": "node dev-server.mjs",
     "test": "bun test"
   }
 }

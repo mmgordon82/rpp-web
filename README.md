@@ -58,7 +58,7 @@ anything else.
 ## Development
 
 ```sh
-bun run dev     # http://localhost:3000
+npm run dev     # http://localhost:7100; pass -- --port 7101 to override
 bun test        # protocol fixtures, no device needed
 bun run build   # static bundle in dist/
 ```
