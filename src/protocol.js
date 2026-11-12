@@ -37,6 +37,20 @@ const SMART_TARGET = {
   warm: [3800, 3900, 4050, 4125, 4200],
 };
 
+const RNP1_5_MODELS = new Set([
+  "RNP-1",
+  "RNP-1L",
+  "RNP-1A",
+  "RNP-2",
+  "RNP-3",
+  "RNP-4",
+  "RNP-5",
+]);
+
+function isRnp1To5(model) {
+  return RNP1_5_MODELS.has(model);
+}
+
 const TAG_DECRYPTION_KEY = Uint8Array.of(
   0xd2,
   0x23,
@@ -93,21 +107,32 @@ export function manualFrame(thermo, level, wave = false) {
   );
 }
 
-export function stopFrame(lastThermo) {
-  return manualFrame(
+export function stopFrame(lastThermo, model) {
+  const frame = manualFrame(
     lastThermo === THERMO.warm ? THERMO.offWarm : THERMO.offCool,
     0,
   );
+  if (isRnp1To5(model)) frame[4] = 0;
+  return frame;
 }
 
-export function smartFrame(kind, preference) {
+export function smartFrame(kind, preference, model) {
   const bytes = new Uint8Array(20);
   const isCool = kind === "cool";
+  const useSmartTargets = !isRnp1To5(model);
   bytes[0] = 4;
   bytes[3] = 1 | ((isCool ? 1 : 2) << 4);
   bytes[6] = isCool ? preference : preference << 4;
-  setInt16(bytes, 7, isCool ? SMART_TARGET.cool[preference - 1] : -32768);
-  setInt16(bytes, 9, isCool ? -32768 : SMART_TARGET.warm[preference - 1]);
+  setInt16(
+    bytes,
+    7,
+    isCool && useSmartTargets ? SMART_TARGET.cool[preference - 1] : -32768,
+  );
+  setInt16(
+    bytes,
+    9,
+    !isCool && useSmartTargets ? SMART_TARGET.warm[preference - 1] : -32768,
+  );
   bytes[13] = 128;
   bytes[14] = 128;
   return bytes;
@@ -118,13 +143,23 @@ export function smartAutoFrame(
   warmPreference,
   coolThreshold = 25,
   warmThreshold = 20,
+  model,
 ) {
   const bytes = new Uint8Array(20);
+  const useSmartTargets = !isRnp1To5(model);
   bytes[0] = 4;
   bytes[3] = 49;
   bytes[6] = coolPreference | (warmPreference << 4);
-  setInt16(bytes, 7, SMART_TARGET.cool[coolPreference - 1]);
-  setInt16(bytes, 9, SMART_TARGET.warm[warmPreference - 1]);
+  setInt16(
+    bytes,
+    7,
+    useSmartTargets ? SMART_TARGET.cool[coolPreference - 1] : -32768,
+  );
+  setInt16(
+    bytes,
+    9,
+    useSmartTargets ? SMART_TARGET.warm[warmPreference - 1] : -32768,
+  );
   bytes[13] = coolThreshold * 2;
   bytes[14] = warmThreshold * 2;
   return bytes;

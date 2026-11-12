@@ -44,6 +44,40 @@ describe("REON protocol", () => {
     ]);
   });
 
+  test("builds RNP 1-5 command variants", () => {
+    for (const model of [
+      "RNP-1",
+      "RNP-1L",
+      "RNP-1A",
+      "RNP-2",
+      "RNP-3",
+      "RNP-4",
+      "RNP-5",
+    ]) {
+      expect([...stopFrame(THERMO.cool, model)]).toEqual([
+        0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
+      ]);
+    }
+    expect([...stopFrame(THERMO.warm, "RNP-5")]).toEqual([
+      0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    expect([...stopFrame(THERMO.warm, "RNP-P1")]).toEqual([
+      0, 0, 0, 4, 255, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    expect([...smartFrame("cool", 3, "RNP-5")]).toEqual([
+      4, 0, 0, 17, 0, 0, 3, 128, 0, 128, 0, 0, 0, 128, 128, 0, 0, 0, 0, 0,
+    ]);
+    expect([...smartFrame("warm", 5, "RNP-5")]).toEqual([
+      4, 0, 0, 33, 0, 0, 80, 128, 0, 128, 0, 0, 0, 128, 128, 0, 0, 0, 0, 0,
+    ]);
+    expect([...smartAutoFrame(3, 4, 25, 20, "RNP-5")]).toEqual([
+      4, 0, 0, 49, 0, 0, 67, 128, 0, 128, 0, 0, 0, 50, 40, 0, 0, 0, 0, 0,
+    ]);
+    expect([...smartFrame("cool", 3, "RNP-P1")]).toEqual([
+      4, 0, 0, 17, 0, 0, 3, 9, 196, 128, 0, 0, 0, 128, 128, 0, 0, 0, 0, 0,
+    ]);
+  });
+
   test("parses device state", () => {
     expect(parseMode(Uint8Array.of(0, 0, 0, 1, 4, 4))).toMatchObject({
       type: "manual",

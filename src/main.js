@@ -280,7 +280,11 @@ for (const button of manualButtons) {
 for (const button of smartButtons) {
   button.addEventListener("click", () => {
     client.writeMode(
-      smartFrame(button.dataset.kind, Number(button.dataset.preference)),
+      smartFrame(
+        button.dataset.kind,
+        Number(button.dataset.preference),
+        client.state.device?.model,
+      ),
     );
   });
 }
@@ -330,6 +334,7 @@ smartAutoStart.addEventListener("click", () => {
       smartAutoWarmPreference,
       Number(coolThreshold.value),
       Number(warmThreshold.value),
+      client.state.device?.model,
     ),
   );
 });
@@ -369,7 +374,9 @@ tagLinkButton.addEventListener("click", () => {
 stopButton.addEventListener("click", () => {
   const mode = client.state.mode;
   client.writeMode(
-    mode?.type === "smart" ? smartStopFrame(mode) : stopFrame(lastThermo),
+    mode?.type === "smart"
+      ? smartStopFrame(mode)
+      : stopFrame(lastThermo, client.state.device?.model),
   );
 });
 

@@ -1,12 +1,14 @@
 # rpp-web
 
-Control a Sony REON Pocket Pro from a browser tab. No app, no Sony account, no
-backend.
+Control a Sony REON Pocket Pro or RNP-1 through RNP-5 from a browser tab. No
+app, no Sony account, no backend.
 
 **[obviyus.github.io/rpp-web](https://obviyus.github.io/rpp-web/)**
 
 Unofficial and unaffiliated with Sony. Developed against `RNP-P1` on firmware
-`2.2.1`.
+`2.2.1`. The RNP-1 through RNP-5 command variants come from Sony's official
+Android app (version 2.3.3) and have byte-level tests, but have not yet been
+validated on those hardware models.
 
 ## Why
 
@@ -19,7 +21,7 @@ address — stays in your browser profile.
 
 1. Open the page in a [supported browser](#browser-support).
 2. Hold the REON button ~2 seconds, until the blue light blinks.
-3. Select **Connect**, then choose `RNP-P1`.
+3. Select **Connect**, then choose your `RNP-` device.
 
 Controls appear based on what the device reports it can do, so a different REON
 model shows a smaller set rather than broken buttons.
@@ -72,8 +74,8 @@ Protocol work belongs in `protocol.js` and is provable with `bun test` alone.
 
 ## Protocol notes
 
-Reverse-engineered from the device. Control service
-`04ca1501-fd57-404e-8459-c5ef8d765c8d`:
+Reverse-engineered from the device and Sony's official Android app. Control
+service `04ca1501-fd57-404e-8459-c5ef8d765c8d`:
 
 | Short UUID | Purpose |
 | --- | --- |
@@ -87,6 +89,11 @@ Reverse-engineered from the device. Control service
 | `1582` | Battery |
 
 Model and firmware come from standard Device Information (`0x180A`).
+
+**Model variants.** RNP-1 through RNP-5 use zero in the level byte of a Manual
+stop frame and leave both Smart target temperatures unset (`0x8000`). The Pro
+uses `0xff` for Manual stop and sets the target temperature for the selected
+Smart mode. Unknown models retain the Pro behavior.
 
 **Ownership.** On every connect the app writes a 16-byte owner key to `150a`.
 The key is generated once and kept in `localStorage`. Clearing site data
